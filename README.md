@@ -261,11 +261,12 @@ numbers.
 ## Python extension
 
 The original proof-of-concept has grown into a real, `pip install`-able
-CPython extension: `zaml.load(str_or_bytes)` parses a YAML document with
-libyaml and returns native Python objects. Like the Elixir NIF, it is
-built in pure Zig by importing `Python.h` directly — no `clang` or
-setuptools C glue. It began as the subject of a [PyCon DE 2022 talk][talk]
-on *Speeding Up Python with Zig*.
+CPython extension (`zaml` 0.2.0, Python 3.10+):
+`zaml.load(str_or_bytes)` parses a YAML document with libyaml and returns
+native Python objects. Like the Elixir NIF, it is built in pure Zig by
+importing `Python.h` directly — no `clang` or setuptools C glue. It began
+as the subject of a [PyCon DE 2022 talk][talk] on *Speeding Up Python with
+Zig*.
 
 [talk]: https://2022.pycon.de/program/DFWSQR/
 
@@ -277,6 +278,7 @@ Only the first document in a stream is returned; malformed input raises
 
 ### Prerequisites
 
+- **Python 3.10+** (CPython)
 - **Zig 0.16+**
 - **libyaml** (`brew install libyaml`, `apt install libyaml-dev`,
   `dnf install libyaml-devel`)
@@ -286,12 +288,19 @@ and `/usr`. Override with `YAML_INCLUDE_DIR` / `YAML_LIB_DIR` if needed.
 
 ### Building the Python extension
 
+The extension has no Python runtime dependencies; it links libyaml and is
+built from source by `pip` (via the custom `builder.py` backend) on
+install.
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e .
+pip install .          # or: pip install -e .   for a development checkout
 python test.py
 ```
+
+> The PyPI `zaml` project is the same codebase as this repository; the
+> `0.2.0` release is built from source here (there is no prebuilt wheel yet).
 
 ### Python benchmark
 

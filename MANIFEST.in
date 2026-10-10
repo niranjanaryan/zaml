@@ -1,0 +1,5 @@
+include builder.py
+include zamlmodule.zig
+include README.md
+include LICENSE
+include CHANGELOG.md

@@ -1,3 +1,50 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zaml"
+version = "0.2.0"
+description = "Fast YAML 1.2 parser for Python, built with Zig + libyaml"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Niranjan Aryan" },
+]
+maintainers = [
+    { name = "Adam Serafini" },
+    { name = "Niranjan Aryan" },
+]
+keywords = ["yaml", "parser", "zig", "libyaml", "native"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Software Development :: Libraries",
+]
+
+[project.urls]
+Homepage = "https://github.com/niranjanaryan/zaml-elixir"
+Repository = "https://github.com/niranjanaryan/zaml-elixir"
+Issues = "https://github.com/niranjanaryan/zaml-elixir/issues"
+Documentation = "https://hexdocs.pm/zaml"
+
+[tool.setuptools]
+# No pure-Python packages to ship: the distribution is just the `zaml`
+# extension (declared in setup.py). An explicit empty list disables
+# setuptools' auto-discovery, which would otherwise try to treat the repo's
+# `lib/`, `native/`, `test/` directories as packages.
+packages = []
+py-modules = []
+
 [tool.cibuildwheel.linux]
 # Only build CPython (no PyPy) on x86_64 architecture
 build = "cp*x86_64"

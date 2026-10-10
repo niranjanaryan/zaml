@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.0] - 2026-10-09
 
+### Python extension
+
+- The in-repo Python extension is now a real, `pip install`-able CPython
+  extension built with Zig 0.16 + libyaml, compatible with CPython
+  3.10–3.14 (Python 3.12's packed `PyObject` refcount is handled
+  adaptively). The Python package version tracks the Elixir release at
+  `0.2.0`.
+- `zaml.load(str_or_bytes)` returns native Python objects: maps, lists,
+  strings, arbitrary-precision `int`, `float`, `bool`, and `None`, resolved
+  with the YAML 1.2 core schema. Explicit `!!str` / `!!int` / `!!float` /
+  `!!bool` / `!!null` tags are honored, and anchors/aliases resolve to the
+  aliased object. Only the first document in a stream is returned;
+  malformed input raises `ValueError`.
+- Packaging modernized (PEP 517/621): `pyproject.toml` now carries
+  `[build-system]` and full `[project]` metadata (single-sourced
+  `version`, `requires-python`, classifiers, URLs, SPDX license) and
+  `setup.py` is reduced to the Zig `Extension` + custom `build_ext`.
+
 ### Changed
 
 - **Performance.** Maps are now built with a single
