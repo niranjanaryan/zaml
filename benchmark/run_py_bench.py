@@ -1,7 +1,8 @@
-#!/usr/bin/env python3
-"""Compares zaml (Zig + libyaml CPython ext) against PyYAML and ruamel.yaml.
+"""Benchmark zaml (Zig + libyaml) against PyYAML / ruamel.
 
-Usage: python3 benchmark/run_py_bench.py [n_runs] [fixture]
+Usage:
+    python3 benchmark/run_py_bench.py [n_runs] [fixture]
+    codon run benchmark/run_py_bench.py 3 benchmark/big.yml
 """
 import sys
 import time
