@@ -52,3 +52,49 @@ Try a minimal event-feed shim in the NIF first (A/B against current build) on th
 | `benchmark/big_1m.yml` (flat 16.78MB, 2 runs) | 587 ms (1.0×) | 5329 ms (9.1×) | ~29s (49×) | ~41.6s (71×) |
 
 Notes: Python extension wraps libyaml in Zig, builds native objects directly (dict/list/str/int/float/bool/None), matching YAML 1.2 core schema with explicit tag support and anchors.
+
+## Python: what `zaml` 0.0.9 actually was (vs 0.2.0)
+
+PyPI's last release, `zaml` **0.0.9**, is a **no-op stub**, not a parser. Its
+`zamlmodule.zig` (identical to git `eef4558`, verified against the PyPI
+sdist) is 58 lines and does:
+
+```zig
+fn zaml_load(...) ... { return Py_BuildValue("i", @as(c_int, 1)); }  // -> returns 1
+```
+
+with `test.py` asserting `zaml.load() == 1`. It takes **no arguments** and
+parses nothing. (It also no longer builds on Python ≥3.12 — the packed
+`PyObject.ob_refcnt` — and uses the pre-0.14 `callconv(.C)`.)
+
+The *real* 0.0.9-era parser lived in `benchmark/benchmark.zig` (a wrapper
+around `kubkon/zig-yaml`), was only ever run in the benchmark harness, and
+was never shipped as the `zaml` module. That is the only meaningful "old
+parser" to compare against.
+
+### Controlled comparison (identical container: linux/arm64, Python 3.10)
+
+Both built in the same `python:3.10` container on an Apple M3 Pro
+(prototype: Zig 0.9.1 + vendored zig-yaml; 0.2.0: Zig 0.16 + libyaml),
+parsing `big_1m.yml` (flat, 16.78 MB, 1M keys, 3 runs):
+
+| Parser | Times | Median | Speedup |
+| --- | --- | --- | --- |
+| prototype (`benchmark.zig`, 0.0.9-era) | 704.6 / 700.9 / 696.4 ms | ~701 ms | 1.0× |
+| **0.2.0** (libyaml via Zig) | 512.1 / 516.9 / 523.2 ms | ~517 ms | **~1.36×** |
+
+Note the prototype only handled a flat top-level map of string→string
+values; 0.2.0 handles full YAML (nesting, tags, anchors, arbitrary-precision
+ints), so the ~1.36× is a floor, not the whole story.
+
+### The published stub, for reference
+
+| Thing | Behavior | Time |
+| --- | --- | --- |
+| `zaml` 0.0.9 `load()` | returns the constant `1`, parses nothing | ~42 ns/call |
+| `zaml` 0.0.9 `load(doc)` | `TypeError: takes no arguments` | — |
+| `zaml` 0.2.0 `load(doc)` | full parse | ~517 ms (16.78 MB, linux/arm64, py3.10) |
+
+So "0.0.9 vs 0.2.0" is not a parser speedup: 0.0.9 never parsed. Against the
+actual old prototype, 0.2.0 is ~1.36× faster on the same hardware while
+being a complete YAML parser.
