@@ -46,11 +46,13 @@ packages = []
 py-modules = []
 
 [tool.cibuildwheel.linux]
-# Only build CPython (no PyPy) on x86_64 architecture
-build = "cp*x86_64"
+# Only build CPython (no PyPy) on x86_64 architecture. cibuildwheel 2.x
+# selects with full build identifiers ("cp3*-manylinux_x86_64"), not the
+# 1.x "cp*x86_64" glob.
+build = ["cp3*-manylinux_x86_64", "cp3*-musllinux_x86_64"]
 before-all = [
-    # libyaml headers + library
-    "yum install -y libyaml-devel",
+    # libyaml headers + library (CentOS for manylinux, Alpine for musllinux)
+    "if command -v yum >/dev/null 2>&1; then yum install -y libyaml-devel; else apk add --no-cache yaml-dev || apk add --no-cache libyaml-dev; fi",
     # Install Zig
     "cd /tmp",
     "curl -O https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz",

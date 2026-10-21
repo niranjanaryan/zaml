@@ -1,6 +1,7 @@
 name: CI
 on:
   pull_request:
+  workflow_dispatch:
   release:
     types:
       - published
@@ -75,9 +76,11 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.22.0
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: wheels
           path: ./wheelhouse/*.whl
+          if-no-files-found: ignore
   build_sdist:
     needs: [test-mac-osx, test-windows]
     name: Make Python source distribution
