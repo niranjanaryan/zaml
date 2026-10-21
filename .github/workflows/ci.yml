@@ -60,6 +60,8 @@ jobs:
         uses: pre-commit/action@v3.0.1
       - name: Run simple module test
         run: python test.py
+      - name: Generate benchmark fixture
+        run: python benchmark/gen_big_yaml.py
       - name: Run benchmark
         working-directory: ./benchmark
         run: python benchmark.py
@@ -72,9 +74,9 @@ jobs:
         # os: [ubuntu-22.04, windows-2019, macos-11]
         os: [ubuntu-22.04]
     env:
-      # Keep the glibc 2.17 baseline (CentOS 7 based image) so the wheels
-      # install on the widest range of distributions.
-      CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+      # The glibc 2.17 (CentOS 7) headers cannot be parsed by zig's C
+      # importer, so use the default manylinux_2_28 (AlmaLinux 8) image.
+      CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
     steps:
       - uses: actions/checkout@v4
       - name: Build wheels
