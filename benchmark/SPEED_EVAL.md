@@ -46,7 +46,7 @@ Try a minimal event-feed shim in the NIF first (A/B against current build) on th
 
 ## Python extension performance vs PyYAML/ruamel (macOS arm64, Python 3.14)
 
-| Fixture | zaml | PyYAML CSafeLoader | PyYAML SafeLoader | ruamel.yaml (safe,pure) |
+| Fixture | zamlpy | PyYAML CSafeLoader | PyYAML SafeLoader | ruamel.yaml (safe,pure) |
 | --- | --- | --- | --- | --- |
 | `benchmark/big.yml` (nested 15.18MB, 2 runs) | 532 ms (1.0×) | 9646 ms (18.1×) | ~28s (52–53×) | ~50.7s (95×) |
 | `benchmark/big_1m.yml` (flat 16.78MB, 2 runs) | 587 ms (1.0×) | 5329 ms (9.1×) | ~29s (49×) | ~41.6s (71×) |
@@ -93,7 +93,7 @@ ints), so the ~1.36× is a floor, not the whole story.
 | --- | --- | --- |
 | `zaml` 0.0.9 `load()` | returns the constant `1`, parses nothing | ~42 ns/call |
 | `zaml` 0.0.9 `load(doc)` | `TypeError: takes no arguments` | — |
-| `zaml` 0.2.0 `load(doc)` | full parse | ~517 ms (16.78 MB, linux/arm64, py3.10) |
+| `zamlpy` 0.2.0 `load(doc)` | full parse | ~517 ms (16.78 MB, linux/arm64, py3.10) |
 
 So "0.0.9 vs 0.2.0" is not a parser speedup: 0.0.9 never parsed. Against the
 actual old prototype, 0.2.0 is ~1.36× faster on the same hardware while

@@ -3,7 +3,7 @@ requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "zaml"
+name = "zamlpy"
 version = "0.2.0"
 description = "Fast YAML 1.2 parser for Python, built with Zig + libyaml"
 readme = "README.md"
@@ -60,4 +60,4 @@ before-all = [
     "mv zig-x86_64-linux-0.16.0 /usr/local/bin/zig-0.16.0",
 ]
 environment = { PATH="$PATH:/usr/local/bin/zig-0.16.0" }
-test-command = 'python -c "import zaml; assert zaml.load(\"a: 1\nb: [x, y]\n\") == {\"a\": 1, \"b\": [\"x\", \"y\"]}"'
+test-command = 'python -c "import zamlpy; assert zamlpy.load(\"a: 1\nb: [x, y]\n\") == {\"a\": 1, \"b\": [\"x\", \"y\"]}"'

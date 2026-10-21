@@ -261,8 +261,8 @@ numbers.
 ## Python extension
 
 The original proof-of-concept has grown into a real, `pip install`-able
-CPython extension (`zaml` 0.2.0, Python 3.10+):
-`zaml.load(str_or_bytes)` parses a YAML document with libyaml and returns
+CPython extension (`zamlpy` 0.2.0, Python 3.10+):
+`zamlpy.load(str_or_bytes)` parses a YAML document with libyaml and returns
 native Python objects. Like the Elixir NIF, it is built in pure Zig by
 importing `Python.h` directly — no `clang` or setuptools C glue. It began
 as the subject of a [PyCon DE 2022 talk][talk] on *Speeding Up Python with
@@ -299,8 +299,8 @@ pip install .          # or: pip install -e .   for a development checkout
 python test.py
 ```
 
-> The PyPI `zaml` project is the same codebase as this repository; the
-> `0.2.0` release is built from source here (there is no prebuilt wheel yet).
+> The PyPI `zaml` project (owned by a third party) is an unrelated no-op
+> stub. This project's Python distribution is published as `zamlpy`.
 
 ### Python benchmark
 
@@ -312,7 +312,7 @@ python run_benchmark.py
 On an Apple M3 Pro (Python 3.14), parsing a 15 MB YAML document:
 
 ```text
-zaml                0.51 s    1.0×
+zamlpy              0.51 s    1.0×
 PyYAML CSafeLoader  9.16 s   17.8×
 PyYAML SafeLoader  33.85 s   65.9×
 ruamel.yaml        48.40 s   94.2×

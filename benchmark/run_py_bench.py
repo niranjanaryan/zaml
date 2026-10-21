@@ -37,7 +37,7 @@ def main():
     print(f"\nBenchmarking on {len(contents):,} byte YAML file ({fixture.name})\n")
 
     import yaml as pyyaml
-    import zaml
+    import zamlpy
 
     pyyaml_c_avg, pyyaml_c_results = time_it(
         "PyYAML CSafeLoader", lambda: pyyaml.load(contents, Loader=pyyaml.CSafeLoader)
@@ -58,7 +58,7 @@ def main():
         print("  (ruamel.yaml not installed; skipping)")
 
     zaml_avg, zaml_results = time_it(
-        "zaml (Zig + libyaml)", lambda: zaml.load(contents)
+        "zamlpy (Zig + libyaml)", lambda: zamlpy.load(contents)
     )
 
     print()

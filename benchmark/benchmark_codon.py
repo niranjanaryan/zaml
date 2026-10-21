@@ -44,7 +44,7 @@ def main():
     sys.path.append(str(REPO))
 
     from python import yaml as pyyaml
-    from python import zaml
+    from python import zamlpy
 
     pyyaml_c_avg, pyyaml_c_results = time_it(
         "PyYAML CSafeLoader", lambda: pyyaml.load(contents, Loader=pyyaml.CSafeLoader)
@@ -65,7 +65,7 @@ def main():
         print("  (ruamel.yaml not installed; skipping)")
 
     zaml_avg, zaml_results = time_it(
-        "zaml (Zig + libyaml)", lambda: zaml.load(contents)
+        "zamlpy (Zig + libyaml)", lambda: zamlpy.load(contents)
     )
 
     print()

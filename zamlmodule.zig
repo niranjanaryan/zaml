@@ -324,7 +324,7 @@ const module_def_base: py.PyModuleDef_Base = blk: {
 
 var zaml_module = py.PyModuleDef{
     .m_base = module_def_base,
-    .m_name = "zaml",
+    .m_name = "zamlpy",
     .m_doc = "Fast YAML 1.2 parser backed by libyaml, built with Zig.",
     .m_size = -1,
     .m_methods = &zaml_methods,
@@ -334,6 +334,6 @@ var zaml_module = py.PyModuleDef{
     .m_free = null,
 };
 
-pub export fn PyInit_zaml() [*c]py.PyObject {
+pub export fn PyInit_zamlpy() [*c]py.PyObject {
     return py.PyModule_Create(&zaml_module);
 }

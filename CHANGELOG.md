@@ -14,7 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   3.10–3.14 (Python 3.12's packed `PyObject` refcount is handled
   adaptively). The Python package version tracks the Elixir release at
   `0.2.0`.
-- `zaml.load(str_or_bytes)` returns native Python objects: maps, lists,
+- The Python distribution is published on PyPI as **`zamlpy`** (the `zaml`
+  project on PyPI is an unrelated third-party stub and cannot be reused):
+  `pip install zamlpy` and `import zamlpy`.
+- The Python distribution is published on PyPI as **`zamlpy`** (the `zaml`
+  project on PyPI is an unrelated third-party stub and cannot be reused):
+  `pip install zamlpy` and `import zamlpy`.
+- `zamlpy.load(str_or_bytes)` returns native Python objects: maps, lists,
   strings, arbitrary-precision `int`, `float`, `bool`, and `None`, resolved
   with the YAML 1.2 core schema. Explicit `!!str` / `!!int` / `!!float` /
   `!!bool` / `!!null` tags are honored, and anchors/aliases resolve to the
