@@ -300,15 +300,24 @@ var zaml_methods = [_]py.PyMethodDef{
     },
 };
 
-// CPython <3.12 exposes `PyObject.ob_refcnt` directly; 3.12+ packs it into
-// an anonymous union (ob_refcnt_full / {ob_refcnt, ob_overflow, ob_flags}).
+// CPython <3.12 exposes `PyObject.ob_refcnt` directly; 3.12/3.13 pack it
+// into an anonymous union ({ob_refcnt, ob_refcnt_split}) and 3.14 renamed the
+// wide member to `ob_refcnt_full`. Set the refcount to 1 whichever layout the
+// headers we are compiled against use.
 const module_def_base: py.PyModuleDef_Base = blk: {
     var base = std.mem.zeroes(py.PyModuleDef_Base);
     base.ob_base.ob_type = null;
     if (@hasField(py.PyObject, "ob_refcnt")) {
         base.ob_base.ob_refcnt = 1;
-    } else {
-        base.ob_base.unnamed_0.ob_refcnt_full = 1;
+    } else if (@hasField(py.PyObject, "unnamed_0")) {
+        const Refcnt = @TypeOf(base.ob_base.unnamed_0);
+        if (@hasField(Refcnt, "ob_refcnt_full")) {
+            base.ob_base.unnamed_0.ob_refcnt_full = 1;
+        } else if (@hasField(Refcnt, "ob_refcnt")) {
+            base.ob_base.unnamed_0.ob_refcnt = 1;
+        } else if (@hasField(Refcnt, "ob_refcnt_split")) {
+            base.ob_base.unnamed_0.ob_refcnt_split[0] = 1;
+        }
     }
     break :blk base;
 };

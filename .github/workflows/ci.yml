@@ -69,8 +69,12 @@ jobs:
     strategy:
       matrix:
         # TODO: build wheels on other platforms
-        # os: [ubuntu-20.04, windows-2019, macos-11]
-        os: [ubuntu-20.04]
+        # os: [ubuntu-22.04, windows-2019, macos-11]
+        os: [ubuntu-22.04]
+    env:
+      # Keep the glibc 2.17 baseline (CentOS 7 based image) so the wheels
+      # install on the widest range of distributions.
+      CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
     steps:
       - uses: actions/checkout@v4
       - name: Build wheels

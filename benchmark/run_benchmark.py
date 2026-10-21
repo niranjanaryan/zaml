@@ -17,7 +17,9 @@ BIG = REPO / "benchmark" / "big.yml"
 def ensure_yaml() -> bytes:
     if not BIG.exists():
         print(f"Generating {BIG} ...")
-        subprocess.check_call([sys.executable, str(REPO / "benchmark" / "gen_big_yaml.py")])
+        subprocess.check_call(
+            [sys.executable, str(REPO / "benchmark" / "gen_big_yaml.py")]
+        )
     return BIG.read_bytes()
 
 
@@ -29,7 +31,9 @@ def time_it(label, fn, n_runs=3):
         result = fn()
         times.append((time.perf_counter() - t0) * 1000.0)
     avg = sum(times) / n_runs
-    print(f"  {label:<38s} avg {avg:8.2f} ms  (min {min(times):.2f}, max {max(times):.2f})")
+    print(
+        f"  {label:<38s} avg {avg:8.2f} ms  (min {min(times):.2f}, max {max(times):.2f})"
+    )
     return avg, result
 
 
@@ -37,7 +41,9 @@ def run_elixir(contents: bytes):
     script = REPO / "benchmark" / "benchmark.exs"
     proc = subprocess.run(
         ["mix", "run", "--no-start", str(script), str(BIG)],
-        cwd=str(REPO), capture_output=True, text=True,
+        cwd=str(REPO),
+        capture_output=True,
+        text=True,
     )
     if proc.returncode != 0:
         print(proc.stdout)
@@ -71,14 +77,21 @@ def main():
         sys.exit(1)
 
     print("Python:")
-    pyyaml_c_avg, pyyaml_c_results = time_it("PyYAML CSafeLoader", lambda: pyyaml.load(contents, Loader=pyyaml.CSafeLoader))
-    pyyaml_avg, pyyaml_results = time_it("PyYAML SafeLoader", lambda: pyyaml.load(contents, Loader=pyyaml.SafeLoader))
+    pyyaml_c_avg, pyyaml_c_results = time_it(
+        "PyYAML CSafeLoader", lambda: pyyaml.load(contents, Loader=pyyaml.CSafeLoader)
+    )
+    pyyaml_avg, pyyaml_results = time_it(
+        "PyYAML SafeLoader", lambda: pyyaml.load(contents, Loader=pyyaml.SafeLoader)
+    )
 
     ruamel_avg = None
     try:
         from ruamel.yaml import YAML
+
         yaml = YAML(typ="safe", pure=True)
-        ruamel_avg, _ = time_it("ruamel.yaml (safe, pure Python)", lambda: yaml.load(contents))
+        ruamel_avg, _ = time_it(
+            "ruamel.yaml (safe, pure Python)", lambda: yaml.load(contents)
+        )
     except ImportError:
         print("  (ruamel.yaml not installed; skipping)")
 
@@ -105,8 +118,12 @@ def main():
     expected_size = len(pyyaml_c_results)
     expected_first_key = min(pyyaml_c_results)
     expected_first_val = pyyaml_c_results[expected_first_key]
-    print(f"  PyYAML  : size={expected_size}, first_key={expected_first_key!r}, first_value={expected_first_val!r}")
-    print(f"  Elixir  : size={elixir_summary.get('RESULT_SIZE')}, first_key={elixir_summary.get('RESULT_FIRST_KEY')!r}, first_value={elixir_summary.get('RESULT_FIRST_VALUE')!r}")
+    print(
+        f"  PyYAML  : size={expected_size}, first_key={expected_first_key!r}, first_value={expected_first_val!r}"
+    )
+    print(
+        f"  Elixir  : size={elixir_summary.get('RESULT_SIZE')}, first_key={elixir_summary.get('RESULT_FIRST_KEY')!r}, first_value={elixir_summary.get('RESULT_FIRST_VALUE')!r}"
+    )
 
     if (
         elixir_summary.get("RESULT_SIZE") == str(expected_size)
