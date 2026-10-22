@@ -1,7 +1,7 @@
 // CPython extension module for `zaml`: a fast YAML parser backed by libyaml,
 // built entirely with the Zig toolchain (no clang / setuptools C glue).
 //
-// https://github.com/niranjanaryan/zaml-elixir
+// https://github.com/niranjanaryan/zaml
 const std = @import("std");
 
 const py = @cImport({

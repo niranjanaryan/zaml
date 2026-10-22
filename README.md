@@ -89,7 +89,7 @@ Add `zaml` to your `mix.exs`:
 ```elixir
 def deps do
   [
-    {:zaml, "~> 0.2.0"}
+    {:zaml, "~> 0.3.0"}
   ]
 end
 ```
@@ -283,7 +283,7 @@ numbers.
 ## Python extension
 
 The original proof-of-concept has grown into a real, `pip install`-able
-CPython extension (`zamlpy` 0.2.0, Python 3.10+):
+CPython extension (`zamlpy` 0.3.0, Python 3.10+):
 `zamlpy.load(str_or_bytes)` parses a YAML document with libyaml and returns
 native Python objects. Like the Elixir NIF, it is built in pure Zig by
 importing `Python.h` directly — no `clang` or setuptools C glue. It began

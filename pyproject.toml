@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zamlpy"
-version = "0.2.0"
+version = "0.3.0"
 description = "Fast YAML 1.2 parser for Python, built with Zig + libyaml"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -32,9 +32,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/niranjanaryan/zaml-elixir"
-Repository = "https://github.com/niranjanaryan/zaml-elixir"
-Issues = "https://github.com/niranjanaryan/zaml-elixir/issues"
+Homepage = "https://github.com/niranjanaryan/zaml"
+Repository = "https://github.com/niranjanaryan/zaml"
+Issues = "https://github.com/niranjanaryan/zaml/issues"
 Documentation = "https://hexdocs.pm/zaml"
 
 [tool.setuptools]

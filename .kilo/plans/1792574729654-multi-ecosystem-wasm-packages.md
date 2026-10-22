@@ -40,9 +40,13 @@ both native hosts *after* the new JS path is green.
 core/                       # shared, host-agnostic Zig core
   scalar.zig                # tag/scalar classification (moved out of NIF + py module)
   parse.zig                 # libyaml event loop, comptime-generic over a Sink
-  value.zig                 # host-agnostic value tree (used by WASM)
-  cbor.zig                  # value tree -> CBOR
-  json.zig                  # value tree -> JSON
+  parse_c.zig               # the same loop over the vendored libyaml of the WASM builds
+  stream.zig                # what the streaming encoders share (the kinds and the anchors)
+  cbor.zig                  # the event stream -> CBOR
+  json.zig                  # the event stream -> JSON
+  value.zig                 # the value tree, kept as the reference of the tests
+  legacy_cbor.zig           # the value tree -> CBOR, the reference of the tests
+  legacy_json.zig           # the value tree -> JSON, the reference of the tests
   base64.zig                # !!binary -> base64 text (JSON output path)
 wasm/
   main.zig                  # freestanding exports  -> build/zaml.wasm
@@ -55,13 +59,19 @@ vendor/libyaml/             # libyaml 0.2.5, parse-only subset, MIT
 packages/
   zamljs/                   # npm package
     package.json  tsconfig.json  README.md
-    src/{index.ts,wasm.ts,cbor.ts,types.ts}
-    test/run.ts
+    src/{index.ts,node.ts,runtime.ts,cbor.ts,types.ts}
+    test/{node.test.mjs,browser.test.mjs,types.ts}
   wasmer/
     wasmer.toml  README.md
-test/conformance/           # shared YAML fixtures + expected JSON, used by all 4 hosts
+benchmark/
+  js/                       # the JavaScript benchmark against js-yaml and yaml
 Makefile                    # new targets: wasm, wasm-wasi, wasm-test, js-build
 ```
+
+The output formats are written while the events of the parse arrive: a
+document is never held as a tree of values. The tree and the encoders
+that walk it stay in `core/` as the reference of the differential test,
+which parses a corpus of documents both ways and compares the bytes.
 
 Changed: `native/zaml_nif.zig`, `zamlmodule.zig`, `Makefile`, `mix.exs` (package `files`),
 `MANIFEST.in`, `setup.py` (sources), `.gitignore`, `README.md`, `CHANGELOG.md`,
@@ -125,14 +135,20 @@ Rules the JS side must honour:
   the NIF hot path is unchanged. The core does **not** resolve anchors: each host keeps its own
   anchor table exactly as today (NIF: name→`ERL_NIF_TERM`; Python: name→`PyObject`; WASM: name→node).
 - `core/value.zig` — tree node: `null | bool | int (normalised decimal text + fits-i64 flag) |
-  float (f64) | str (bytes) | binary (bytes) | seq | map`. Strings are copied into an arena that
-  is released after the result is encoded.
-- `core/cbor.zig` — major types: 0/1 = int (u64 / -1-n), tag 2/3 = bignum for values that do not
-  fit i64/u64, 2 = binary, 3 = text, 4 = array, 5 = map, 7/20/21/22 = false/true/null,
-  7/27 = float64. Map keys keep their own value kind (not stringified).
-- `core/json.zig` — null/bool/int (decimal digits verbatim)/float (shortest round-trip; verified by
-  a unit test that re-parses to the same bits)/string (escaped, invalid UTF-8 → U+FFFD)/
-  binary (base64)/array/object (non-string keys rendered as their JSON text).
+  float (f64) | str (bytes) | binary (bytes) | seq | map`. The tree is what the encoders were
+  first written against; it is kept now as the reference of the differential test, because the
+  encoders write the document while the events arrive and never build a tree.
+- `core/cbor.zig` — a sink of the event stream: major types 0/1 = int (u64 / -1-n),
+  tag 2/3 = bignum for values that do not fit i64/u64, 2 = binary, 3 = text, 4 = array, 5 = map,
+  7/20/21/22 = false/true/null, 7/27 = float64. Map keys keep their own value kind (not
+  stringified).
+- `core/json.zig` — a sink of the event stream: null/bool/int (decimal digits verbatim)/
+  float (shortest round-trip; verified by a unit test that re-parses to the same bits)/
+  string (escaped, invalid UTF-8 → U+FFFD)/binary (base64)/array/object (non-string keys
+  rendered as their JSON text).
+- `core/stream.zig` — the kinds of the values and the table of the anchors, shared by the two
+  encoders. The name of an anchor is copied when its container starts, because the buffer of the
+  event does not outlive the event.
 - `core/base64.zig` — encoder for the JSON path only.
 
 ## Build recipes
@@ -277,11 +293,11 @@ await parse('a: 1\n');                      // convenience: lazily creates a sha
 
 | Check | Command |
 |---|---|
-| Zig unit tests | `zig test core/scalar.zig core/cbor.zig core/json.zig` |
-| WASM builds | `make wasm wasm-wasi` |
-| Zero imports / entry present | `wasm-objdump -x build/zaml.wasm` (or `wasm2wat`) |
-| JS behaviour | `make js-test` → Node, Bun, Deno |
-| Wasmer CLI | `wasmer run packages/wasmer/zaml.wasm -- --format json < test/conformance/basic.yml` |
+| Zig unit tests | `zig build test` |
+| WASM builds | `zig build wasm wasm-wasi -Doptimize=ReleaseSmall` |
+| Zero imports / entry present | `wasm-objdump -x zig-out/dist/wasm/zaml.wasm` (or `wasm2wat`) |
+| JS behaviour | `npm test` in `packages/zamljs`, plus the same file under Deno |
+| Wasmer CLI | `wasmer run zig-out/dist/wasm/zaml.wasi.wasm -- --format json < fixture.yml` |
 | Elixir | `mix test` |
 | Python | `python test.py` |
 | Cross-host conformance | `make conformance` (all four hosts vs `expected.json`) |

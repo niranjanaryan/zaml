@@ -32,13 +32,13 @@ defmodule Zaml.MixProject do
   def project do
     [
       app: :zaml,
-      version: "0.2.0",
+      version: "0.3.0",
       elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       description: "Fast YAML 1.2 parser for Elixir via a Zig NIF backed by libyaml",
-      source_url: "https://github.com/niranjanaryan/zaml-elixir",
-      homepage_url: "https://github.com/niranjanaryan/zaml-elixir",
+      source_url: "https://github.com/niranjanaryan/zaml",
+      homepage_url: "https://github.com/niranjanaryan/zaml",
       docs: docs(),
       package: package(),
       compilers: [:elixir_make] ++ Mix.compilers(),
@@ -91,9 +91,9 @@ defmodule Zaml.MixProject do
       maintainers: ["Niranjan Aryan"],
       licenses: ["MIT"],
       links: %{
-        "GitHub" => "https://github.com/niranjanaryan/zaml-elixir",
-        "Changelog" => "https://github.com/niranjanaryan/zaml-elixir/blob/main/CHANGELOG.md",
-        "Benchmarks" => "https://github.com/niranjanaryan/zaml-elixir/blob/main/benchmark/RESULTS.md"
+        "GitHub" => "https://github.com/niranjanaryan/zaml",
+        "Changelog" => "https://github.com/niranjanaryan/zaml/blob/main/CHANGELOG.md",
+        "Benchmarks" => "https://github.com/niranjanaryan/zaml/blob/main/benchmark/RESULTS.md"
       }
     ]
   end
