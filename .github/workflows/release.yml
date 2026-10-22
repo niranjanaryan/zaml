@@ -99,6 +99,8 @@ jobs:
           version: ${{ env.ZIG_VERSION }}
       - name: Install libyaml
         run: sudo apt-get update && sudo apt-get install -y libyaml-dev
+      - name: Fetch the dependencies
+        run: mix deps.get
       - name: Set the version
         run: |
           version="${{ needs.version.outputs.version }}"
