@@ -103,7 +103,7 @@ jobs:
           npm run typecheck
           npm test
       - name: Install Wasmer
-        uses: wasmerio/wasmer-action@v2
+        uses: wasmerio/setup-wasmer@v3
       - name: Smoke test the command
         run: |
           echo 'a: 1' | wasmer run zig-out/dist/wasm/zaml.wasi.wasm

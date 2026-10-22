@@ -178,13 +178,24 @@ jobs:
           name: wasm
           path: packages/wasmer
       - name: Install Wasmer
-        uses: wasmerio/wasmer-action@v2
+        uses: wasmerio/setup-wasmer@v3
       - name: Set the version
         run: |
           version="${{ needs.version.outputs.version }}"
           sed -i "s|^version = .*|version = \"$version\"|" packages/wasmer/wasmer.toml
           cat packages/wasmer/wasmer.toml
+      - name: Check whether the version is already on Wasmer
+        id: wasmer
+        run: |
+          query="{\"query\":\"{ getPackageVersion(name: \\\"niranjanaryan/zaml\\\", version: \\\"${{ needs.version.outputs.version }}\\\") { version } }\"}"
+          if curl -fsS -X POST https://registry.wasmer.io/graphql \
+            -H 'Content-Type: application/json' -d "$query" | grep -q '"version"'; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Publish
+        if: steps.wasmer.outputs.published != 'true'
         run: wasmer publish packages/wasmer
         env:
           WASMER_TOKEN: ${{ secrets.WASMER_REGISTRY_TOKEN }}
