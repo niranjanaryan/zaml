@@ -9,9 +9,17 @@ on:
         description: "The version to release, without the v (e.g. 0.2.0)"
         required: true
 
-# A release publishes the same version to GitHub, npm and Wasmer. The
+# A release publishes the same version to GitHub, Hex, npm and Wasmer. The
 # Python distribution is published by the CI workflow, which reacts to the
 # published GitHub release.
+#
+# The jobs need these secrets:
+#
+#   HEX_API_KEY             the Hex package
+#   NPM_TOKEN               the npm package
+#   WASMER_REGISTRY_TOKEN   the Wasmer package
+#
+# The Python distribution needs `pypi_password` in the CI workflow.
 permissions:
   contents: write
 
@@ -73,6 +81,35 @@ jobs:
             dist/wasm/zaml.wasm
             dist/wasm/zaml.wasi.wasm
           generate_release_notes: true
+
+  hex:
+    name: Publish to Hex
+    needs: [version, wasm]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: '1.18'
+          otp-version: '27'
+      - name: Install Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+      - name: Install libyaml
+        run: sudo apt-get update && sudo apt-get install -y libyaml-dev
+      - name: Set the version
+        run: |
+          version="${{ needs.version.outputs.version }}"
+          sed -i "s|^      version: \".*\"|      version: \"$version\"|" mix.exs
+          grep -n 'version:' mix.exs
+      - name: Build the package
+        run: mix hex.build
+      - name: Publish
+        run: mix hex.publish --yes
+        env:
+          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
 
   npm:
     name: Publish to npm

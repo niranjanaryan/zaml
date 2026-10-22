@@ -6,6 +6,9 @@ on:
     types:
       - published
 
+# The Python distribution is published when a GitHub release is published.
+# The job needs the `pypi_password` secret of the repository.
+
 jobs:
   test-windows:
     runs-on: windows-latest
@@ -106,6 +109,12 @@ jobs:
       CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
     steps:
       - uses: actions/checkout@v4
+      - name: Set the version
+        if: github.event_name == 'release'
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          sed -i "s|^version = \".*\"|version = \"$version\"|" pyproject.toml
+          grep -n '^version' pyproject.toml
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.22.0
       - uses: actions/upload-artifact@v4
@@ -120,6 +129,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Set the version
+        if: github.event_name == 'release'
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          sed -i "s|^version = \".*\"|version = \"$version\"|" pyproject.toml
       - name: Build SDist
         run: pipx run build --sdist
 
