@@ -119,20 +119,17 @@ export fn zaml_parse(ptr: u32, len: u32, format: u32) i32 {
 
     var problem: event.Problem = .{};
     const encoded = switch (fmt) {
-        .cbor => encode(cbor.Encoder, input, &problem) catch |err| {
-            setError(describe(&problem));
-            return switch (err) {
-                error.OutOfMemory => @intFromEnum(ErrorCode.out_of_memory),
-                else => @intFromEnum(ErrorCode.parse_error),
-            };
-        },
-        .json => encode(json.Encoder, input, &problem) catch |err| {
-            setError(describe(&problem));
-            return switch (err) {
-                error.OutOfMemory => @intFromEnum(ErrorCode.out_of_memory),
-                else => @intFromEnum(ErrorCode.parse_error),
-            };
-        },
+        .cbor => encode(cbor.Encoder, input, &problem),
+        .json => encode(json.Encoder, input, &problem),
+    } catch |err| {
+        switch (err) {
+            error.OutOfMemory => setError("out of memory"),
+            else => setError(describe(&problem)),
+        }
+        return switch (err) {
+            error.OutOfMemory => @intFromEnum(ErrorCode.out_of_memory),
+            else => @intFromEnum(ErrorCode.parse_error),
+        };
     };
 
     result_buf = encoded;
