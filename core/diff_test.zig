@@ -102,6 +102,12 @@ const corpus = [_][]const u8{
     "'key': 'value'",
     "1: 2\n3: 4",
     "a: 1\n---\nb: 2\n",
+    "base: &b 1\n*b: two",
+    "base: &b [1]\n*b: two",
+    "base: &b {x: 1}\n*b: two",
+    "base: &b {x: 1}\n<<: *b\nother: 1",
+    "- &a 1\n- *a\n- *a",
+    "a: &x {b: 1}\nc: *x\nd: *x",
 };
 
 fn legacyCbor(allocator: std.mem.Allocator, input: []const u8) ![]u8 {
