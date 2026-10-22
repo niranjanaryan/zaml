@@ -85,6 +85,7 @@ jobs:
         run: |
           npm ci
           npm run build
+          npm run typecheck
           npm test
       - name: Install Wasmer
         uses: wasmerio/wasmer-action@v2

@@ -94,6 +94,11 @@ jobs:
       - name: Set the version
         working-directory: packages/zamljs
         run: npm version ${{ needs.version.outputs.version }} --no-git-tag-version --allow-same-version
+      - name: Check the types
+        working-directory: packages/zamljs
+        run: |
+          npm run build
+          npm run typecheck
       - name: Publish
         working-directory: packages/zamljs
         run: npm publish --access public
