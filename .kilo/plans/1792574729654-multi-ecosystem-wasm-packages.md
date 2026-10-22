@@ -10,11 +10,24 @@ the release.
 | Item | State |
 | --- | --- |
 | Elixir `zaml` on Hex | published (0.3.0) |
-| Python `zamlpy` on PyPI | published (0.3.0) |
+| Python `zamlpy` on PyPI | published (0.3.1, 9 files) |
 | Wasmer `niranjanaryan/zaml` | published (0.3.0) |
 | GitHub `v0.3.0` release | published |
 | npm `zamljs` | not published — needs trusted publishing enabled on npmjs.com |
 | Hex `zaml` 0.3.0 via CI | not published — needs a workload identity on hex.pm |
+
+## Python 0.3.1
+
+The published 0.3.0 carried the Elixir-centric `README.md` as its PyPI
+description, and PyPI does not replace the description of an existing
+version. The fix was a dedicated `PYPI.md` published as 0.3.1, which
+carries install, usage, examples, the scalar table, big integers,
+cross-platform notes, the benchmark table and the project links.
+
+The CI workflow now accepts a `version` input, so the wheels and the
+sdist can be built for a version that has no tag. The 0.3.1 artifacts
+were built with `gh workflow run ci.yml --ref main -f version=0.3.1`
+and uploaded with `twine`.
 
 ## npm — trusted publishing
 
