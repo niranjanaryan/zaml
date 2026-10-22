@@ -100,14 +100,16 @@ jobs:
       - name: Install libyaml
         run: sudo apt-get update && sudo apt-get install -y libyaml-dev
       - name: Fetch the dependencies
-        run: mix deps.get
+        run: mix deps.get --only prod
       - name: Set the version
         run: |
           version="${{ needs.version.outputs.version }}"
-          sed -i "s|^      version: \".*\"|      version: \"$version\"|" mix.exs
+          sed -i "s|^      version: \".*\"|version = \"$version\"|" mix.exs
           grep -n 'version:' mix.exs
       - name: Build the package
         run: mix hex.build
+        env:
+          MIX_ENV: prod
       - name: Check whether the version is already on Hex
         id: hex
         run: |
@@ -120,6 +122,7 @@ jobs:
         if: steps.hex.outputs.published != 'true'
         run: mix hex.publish --yes
         env:
+          MIX_ENV: prod
           HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
 
   npm:
