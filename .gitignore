@@ -39,3 +39,7 @@ erl_crash.dump
 
 # Draft release / marketing copy — not part of the shipped package.
 /RELEASE_NOTES/
+
+# The WebAssembly module of the Wasmer package is downloaded before it is
+# published.
+/packages/wasmer/*.wasm

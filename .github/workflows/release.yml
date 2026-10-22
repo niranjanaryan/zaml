@@ -164,19 +164,22 @@ jobs:
 
   wasmer:
     name: Publish to Wasmer
-    # The package points at the release asset, so the release has to
+    # The package holds the module of the release, so the release has to
     # exist before the package is published.
     needs: [version, wasm, github-release]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: wasm
+          path: packages/wasmer
       - name: Install Wasmer
         uses: wasmerio/wasmer-action@v2
-      - name: Point the package at this release
+      - name: Set the version
         run: |
           version="${{ needs.version.outputs.version }}"
           sed -i "s|^version = .*|version = \"$version\"|" packages/wasmer/wasmer.toml
-          sed -i "s|/releases/download/[^/]*/|/releases/download/v$version/|" packages/wasmer/wasmer.toml
           cat packages/wasmer/wasmer.toml
       - name: Publish
         run: wasmer publish packages/wasmer

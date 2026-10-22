@@ -6,9 +6,14 @@ license = "MIT"
 readme = "README.md"
 categories = ["command-line", "parser", "yaml"]
 
-[source]
-url = "https://github.com/niranjanaryan/zaml/releases/download/v0.3.0/zaml.wasi.wasm"
-target = "wasm32-wasi"
-
-[command]
+# The module is the WebAssembly build of the command. The release workflow
+# downloads it from the release of the tag before it publishes the package.
+[[module]]
 name = "zaml"
+source = "zaml.wasi.wasm"
+abi = "wasi"
+
+[[command]]
+name = "zaml"
+module = "zaml"
+runner = "wasi"
