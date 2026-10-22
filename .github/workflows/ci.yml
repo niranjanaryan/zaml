@@ -11,7 +11,13 @@ on:
 
 jobs:
   test-windows:
+    # The C importer of Zig cannot translate the headers of the Windows SDK
+    # yet, so the CPython extension does not build on Windows:
+    # https://codeberg.org/ziglang/translate-c/issues/307
+    # The job keeps reporting the problem, but it does not hold the release
+    # back.
     runs-on: windows-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - name: Setup Python
@@ -124,7 +130,7 @@ jobs:
           path: ./wheelhouse/*.whl
           if-no-files-found: ignore
   build_sdist:
-    needs: [test-mac-osx, test-windows]
+    needs: [test-mac-osx]
     name: Make Python source distribution
     runs-on: ubuntu-latest
     steps:

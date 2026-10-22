@@ -98,7 +98,9 @@ end
 
 The NIF is built at compile time from source. You need:
 
-- **Zig 0.16+** (`brew install zig`, `apt install zig`, `asdf install zig latest`, …)
+- **Zig 0.16.x** (`brew install zig`, `apt install zig`, `asdf install zig latest`, …).
+  Zig 0.17 does not work yet: its C importer fails on the headers of the
+  C libraries.
 - **libyaml** development headers
   - macOS: `brew install libyaml`
   - Debian/Ubuntu: `apt install libyaml-dev`
@@ -301,7 +303,7 @@ Only the first document in a stream is returned; malformed input raises
 ### Prerequisites
 
 - **Python 3.10+** (CPython)
-- **Zig 0.16+**
+- **Zig 0.16.x**
 - **libyaml** (`brew install libyaml`, `apt install libyaml-dev`,
   `dnf install libyaml-devel`)
 
@@ -345,6 +347,11 @@ ruamel.yaml        48.40 s   94.2×
 - **macOS:** `brew install zig libyaml`.
 - **Linux:** tested via Docker (`fedora` base image, `libyaml-devel` via
   the distro package manager).
+- **Windows:** the extension does not build yet. The C importer of Zig
+  cannot translate the headers of the Windows SDK, so the `Python.h`
+  import fails (see
+  [translate-c#307](https://codeberg.org/ziglang/translate-c/issues/307)).
+  The other hosts (Elixir, JavaScript, Wasmer) are not affected.
 
 ---
 

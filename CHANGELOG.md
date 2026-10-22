@@ -51,6 +51,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   never pulled into a test block, so the test binary had no tests in
   it at all.
 
+### Known issues
+
+- The CPython extension does not build on Windows. The C importer of
+  Zig cannot translate the headers of the Windows SDK yet
+  ([translate-c#307](https://codeberg.org/ziglang/translate-c/issues/307)),
+  so the import of `Python.h` fails. The other hosts are not affected.
+- Zig 0.17 does not build the CPython extension yet, because its C
+  importer fails on the headers of the C libraries. The extension needs
+  Zig 0.16.x.
+
 ## [0.2.0] - 2026-10-09
 
 ### Python extension

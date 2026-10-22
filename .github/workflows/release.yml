@@ -106,7 +106,16 @@ jobs:
           grep -n 'version:' mix.exs
       - name: Build the package
         run: mix hex.build
+      - name: Check whether the version is already on Hex
+        id: hex
+        run: |
+          if mix hex.info zaml "${{ needs.version.outputs.version }}" > /dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Publish
+        if: steps.hex.outputs.published != 'true'
         run: mix hex.publish --yes
         env:
           HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
@@ -136,7 +145,16 @@ jobs:
         run: |
           npm run build
           npm run typecheck
+      - name: Check whether the version is already on npm
+        id: npm
+        run: |
+          if curl -fsS "https://registry.npmjs.org/zamljs/${{ needs.version.outputs.version }}" > /dev/null; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Publish
+        if: steps.npm.outputs.published != 'true'
         working-directory: packages/zamljs
         run: npm publish --access public
         env:

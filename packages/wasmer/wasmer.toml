@@ -1,13 +1,13 @@
 [package]
 name = "niranjanaryan/zaml"
-version = "0.1.0"
+version = "0.3.0"
 description = "YAML to JSON and CBOR from the command line, powered by libyaml compiled to WebAssembly"
 license = "MIT"
 readme = "README.md"
 categories = ["command-line", "parser", "yaml"]
 
 [source]
-url = "https://github.com/niranjanaryan/zaml/releases/download/v0.1.0/zaml.wasi.wasm"
+url = "https://github.com/niranjanaryan/zaml/releases/download/v0.3.0/zaml.wasi.wasm"
 target = "wasm32-wasi"
 
 [command]
