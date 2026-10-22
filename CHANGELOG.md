@@ -5,6 +5,39 @@ All notable changes to `zaml` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **JavaScript package** (`zamljs` on npm): the same parser, compiled to
+  WebAssembly, for browsers, Node.js, Bun and Deno. The package is
+  ESM-only TypeScript with no runtime dependencies and ships its own
+  types. `parse` returns plain JavaScript values, with integers that do
+  not fit a `number` kept exact as `bigint` and `!!binary` values kept
+  as `Uint8Array`. `parseCbor` and `parseJson` return the raw encoded
+  document, and a `ZamlError` carries the line and column of a parse
+  failure.
+- **Wasmer command** (`niranjanaryan/zaml`): the parser as a WASI
+  command that reads YAML on standard input and writes JSON or CBOR to
+  standard output (`--format json|cbor`).
+- **Shared core** in `core/`: the parts of the parser that do not depend
+  on the host. The WebAssembly builds use it as a module, and the
+  Erlang NIF and the CPython extension now share its scalar
+  classification instead of carrying their own copy of the rules.
+- A release workflow that publishes the WebAssembly modules to GitHub
+  releases, the JavaScript package to npm and the command to the Wasmer
+  registry.
+
+### Fixed
+
+- The `strcmp` and `strncmp` of the freestanding WebAssembly build no
+  longer overflow when the compared strings have different lengths,
+  which crashed the parser on tagged scalars.
+- The WebAssembly parser no longer fails on an empty document.
+- The CPython extension no longer leaves a pending exception behind
+  when an explicitly tagged integer cannot be converted, which turned
+  `!!int abc` into a `SystemError` instead of the string `abc`.
+
 ## [0.2.0] - 2026-10-09
 
 ### Python extension
@@ -14,9 +47,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   3.10–3.14 (Python 3.12's packed `PyObject` refcount is handled
   adaptively). The Python package version tracks the Elixir release at
   `0.2.0`.
-- The Python distribution is published on PyPI as **`zamlpy`** (the `zaml`
-  project on PyPI is an unrelated third-party stub and cannot be reused):
-  `pip install zamlpy` and `import zamlpy`.
 - The Python distribution is published on PyPI as **`zamlpy`** (the `zaml`
   project on PyPI is an unrelated third-party stub and cannot be reused):
   `pip install zamlpy` and `import zamlpy`.

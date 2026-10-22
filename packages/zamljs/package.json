@@ -1,0 +1,60 @@
+{
+  "name": "zamljs",
+  "version": "0.1.0",
+  "description": "YAML parsing for JavaScript and TypeScript, powered by libyaml compiled to WebAssembly",
+  "keywords": [
+    "yaml",
+    "parser",
+    "cbor",
+    "webassembly",
+    "libyaml"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/niranjanaryan/zaml.git",
+    "directory": "packages/zamljs"
+  },
+  "homepage": "https://github.com/niranjanaryan/zaml/tree/main/packages/zamljs",
+  "bugs": {
+    "url": "https://github.com/niranjanaryan/zaml/issues"
+  },
+  "main": "./dist/node.js",
+  "types": "./dist/node.d.ts",
+  "exports": {
+    ".": {
+      "browser": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "node": {
+        "types": "./dist/node.d.ts",
+        "default": "./dist/node.js"
+      },
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/copy-wasm.mjs",
+    "test": "node --test test/",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}

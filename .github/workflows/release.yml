@@ -1,0 +1,122 @@
+name: Release
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "The version to release, without the v (e.g. 0.2.0)"
+        required: true
+
+# A release publishes the same version to GitHub, npm and Wasmer. The
+# Python distribution is published by the CI workflow, which reacts to the
+# published GitHub release.
+permissions:
+  contents: write
+
+env:
+  ZIG_VERSION: "0.16.0"
+
+jobs:
+  version:
+    name: Work out the version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.compute.outputs.version }}
+      tag: ${{ steps.compute.outputs.tag }}
+    steps:
+      - id: compute
+        run: |
+          raw="${{ github.event.inputs.version || github.ref_name }}"
+          version="${raw#v}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+  wasm:
+    name: Build the WebAssembly modules
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+      - name: Build the browser module
+        run: zig build wasm -Doptimize=ReleaseSmall
+      - name: Build the Wasmer command
+        run: zig build wasm-wasi -Doptimize=ReleaseSmall
+      - name: Run the tests of the core
+        run: zig build test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wasm
+          path: zig-out/dist/wasm
+
+  github-release:
+    name: Publish the GitHub release
+    needs: [version, wasm]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: wasm
+          path: dist/wasm
+      - name: Publish the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          name: ${{ needs.version.outputs.tag }}
+          files: |
+            dist/wasm/zaml.wasm
+            dist/wasm/zaml.wasi.wasm
+          generate_release_notes: true
+
+  npm:
+    name: Publish to npm
+    needs: [version, wasm]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: wasm
+          path: zig-out/dist/wasm
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+      - name: Install the build tools
+        working-directory: packages/zamljs
+        run: npm ci
+      - name: Set the version
+        working-directory: packages/zamljs
+        run: npm version ${{ needs.version.outputs.version }} --no-git-tag-version --allow-same-version
+      - name: Publish
+        working-directory: packages/zamljs
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  wasmer:
+    name: Publish to Wasmer
+    # The package points at the release asset, so the release has to
+    # exist before the package is published.
+    needs: [version, wasm, github-release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Wasmer
+        uses: wasmerio/wasmer-action@v2
+      - name: Point the package at this release
+        run: |
+          version="${{ needs.version.outputs.version }}"
+          sed -i "s|^version = .*|version = \"$version\"|" packages/wasmer/wasmer.toml
+          sed -i "s|/releases/download/[^/]*/|/releases/download/v$version/|" packages/wasmer/wasmer.toml
+          cat packages/wasmer/wasmer.toml
+      - name: Publish
+        run: wasmer publish packages/wasmer
+        env:
+          WASMER_TOKEN: ${{ secrets.WASMER_REGISTRY_TOKEN }}

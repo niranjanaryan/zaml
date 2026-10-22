@@ -4,7 +4,11 @@ A **fast YAML 1.2 parser for Elixir**, powered by a Zig NIF that wraps
 [libyaml](https://pyyaml.org/wiki/LibYAML). Heavily inspired by
 [`kubkon/zig-yaml`](https://github.com/kubkon/zig-yaml), with a matching
 Python extension that lives in this same repository (see
-[Python extension](#python-extension) below).
+[Python extension](#python-extension) below). The same parser is also
+available for JavaScript (see
+[JavaScript package](#javascript-package) below) and as a command that
+turns YAML into JSON or CBOR (see
+[Command line](#command-line) below).
 
 ```elixir
 iex> Zaml.load("foo: 1\nbar: [a, b, 3.14]\n")
@@ -230,6 +234,23 @@ numbers.
 │       └── zaml_nif.bench.ex        # `mix zaml_nif.bench` benchmark task
 ├── native/
 │   └── zaml_nif.zig                 # the NIF (uses libyaml via @cImport)
+├── core/                            # the host independent core
+│   ├── scalar.zig                   # how a scalar and a tag resolve
+│   ├── value.zig                    # the value tree
+│   ├── parse.zig, parse_c.zig       # the event stream, native and WASM
+│   ├── cbor.zig, json.zig           # the output formats
+│   ├── base64.zig, emit.zig, event.zig
+│   └── native.zig                   # what the native hosts share
+├── wasm/
+│   ├── main.zig                     # the WebAssembly module (browser)
+│   ├── wasi_main.zig                # the WASI command
+│   ├── alloc.zig, c_abi.zig         # the freestanding heap and the C ABI
+│   └── shim/                        # the C bridge to the vendored libyaml
+├── packages/
+│   ├── zamljs/                      # the npm package
+│   └── wasmer/                      # the Wasmer package
+├── vendor/libyaml/                  # the libyaml sources the WASM builds use
+├── build.zig                        # builds the WebAssembly targets
 ├── priv/                            # compiled zaml.so lands here
 ├── test/                            # ExUnit tests
 ├── benchmark/
@@ -323,3 +344,103 @@ ruamel.yaml        48.40 s   94.2×
 - **macOS:** `brew install zig libyaml`.
 - **Linux:** tested via Docker (`fedora` base image, `libyaml-devel` via
   the distro package manager).
+
+---
+
+## JavaScript package
+
+The parser is also available for JavaScript and TypeScript as `zamljs` on
+npm. The package ships a WebAssembly module built from the same libyaml
+sources as the native builds, so the rules are the same everywhere.
+
+```console
+npm install zamljs
+```
+
+```javascript
+import { parse } from 'zamljs';
+
+parse('foo: 1\nbar: [a, b, 3.14]\n');
+// { foo: 1, bar: [ 'a', 'b', 3.14 ] }
+```
+
+The package is ESM-only TypeScript with no runtime dependencies and it
+ships its own types. It works in browsers, Node.js, Bun and Deno: the
+`browser` and `node` export conditions pick the right loader, so a
+bundler gets the browser build and Node reads the module from the disk.
+
+Nothing is lost on the way to JavaScript: an integer that does not fit a
+`number` comes back as a `bigint`, and a `!!binary` value stays a
+`Uint8Array`. A mapping whose keys are not all strings becomes a `Map`.
+A document that cannot be parsed throws a `ZamlError` that carries the
+line and column of the problem.
+
+`parseCbor` and `parseJson` return the raw encoded document instead of a
+value, which is what the command below writes.
+
+Building the package from a checkout:
+
+```bash
+zig build wasm                 # builds the WebAssembly module
+cd packages/zamljs
+npm install
+npm run build                  # compiles the TypeScript, copies the module
+npm test
+```
+
+---
+
+## Command line
+
+The parser is also a command that turns YAML into JSON or CBOR, built for
+WASI and published on the [Wasmer registry](https://wasmer.io) as
+[`niranjanaryan/zaml`](https://wasmer.io/packages/niranjanaryan/zaml).
+
+```console
+wasmer install niranjanaryan/zaml
+```
+
+```console
+$ echo 'foo: 1
+bar: [a, b, 3.14]' | wasmer run niranjanaryan/zaml
+{"foo":1,"bar":["a","b",3.14]}
+```
+
+The output is JSON by default. CBOR keeps the exact value of every
+integer, which JSON cannot:
+
+```console
+$ echo 'big: 123456789012345678901234567890' | wasmer run niranjanaryan/zaml -- --format cbor
+```
+
+A document that cannot be parsed is reported on standard error, and the
+command exits with 1:
+
+```console
+$ echo 'a: [1, 2' | wasmer run niranjanaryan/zaml
+zaml: line 2, column 1: did not find expected ',' or ']'
+```
+
+Building it from a checkout:
+
+```bash
+zig build wasm-wasi            # writes zig-out/dist/wasm/zaml.wasi.wasm
+```
+
+---
+
+## Building the WebAssembly targets
+
+Both WebAssembly targets are built by the build script of the repository
+and need nothing but the Zig toolchain — the libyaml sources they use
+are vendored in `vendor/libyaml/`.
+
+```bash
+zig build test                 # the tests of the shared core
+zig build wasm                 # zig-out/dist/wasm/zaml.wasm
+zig build wasm-wasi            # zig-out/dist/wasm/zaml.wasi.wasm
+```
+
+The browser module has no imports at all: it grows its own memory and
+carries the handful of C functions libyaml needs. The WASI command uses
+the C library of the runtime instead.
