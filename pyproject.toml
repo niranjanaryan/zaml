@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zamlpy"
-version = "0.3.0"
+version = "0.3.1"
 description = "Fast YAML 1.2 parser for Python, built with Zig + libyaml"
 readme = "PYPI.md"
 requires-python = ">=3.10"

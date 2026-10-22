@@ -2,6 +2,11 @@ name: CI
 on:
   pull_request:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to set on the Python package (e.g. 0.3.1)"
+        required: false
+        type: string
   push:
     tags:
       - "v*"
@@ -122,9 +127,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set the version
-        if: github.event_name != 'workflow_dispatch'
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          if [ -n "${{ inputs.version }}" ]; then
+            version="${{ inputs.version }}"
+          else
+            version="${GITHUB_REF_NAME#v}"
+          fi
           sed -i "s|^version = \".*\"|version = \"$version\"|" pyproject.toml
           grep -n '^version' pyproject.toml
       - name: Build wheels
@@ -142,10 +150,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set the version
-        if: github.event_name != 'workflow_dispatch'
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          if [ -n "${{ inputs.version }}" ]; then
+            version="${{ inputs.version }}"
+          else
+            version="${GITHUB_REF_NAME#v}"
+          fi
           sed -i "s|^version = \".*\"|version = \"$version\"|" pyproject.toml
+          grep -n '^version' pyproject.toml
       - name: Build SDist
         run: pipx run build --sdist
 
