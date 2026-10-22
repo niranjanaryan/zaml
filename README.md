@@ -143,6 +143,49 @@ Sequences become lists, mappings become maps with binary keys.
 Returns `:error` for non-binary input, `:parse_error` for malformed
 YAML, and `:nil` for an empty document.
 
+### Examples
+
+```elixir
+# Scalars
+iex> Zaml.load("42")
+42
+iex> Zaml.load("-3.14")
+-3.14
+iex> Zaml.load("yes")
+true
+iex> Zaml.load("~")
+nil
+iex> Zaml.load("!!str 123")
+"123"
+
+# Nested structures
+iex> Zaml.load("""
+...> people:
+...>   - name: Ada
+...>     role: maintainer
+...>   - name: Grace
+...>     role: contributor
+...> """)
+%{"people" => [
+  %{"name" => "Ada", "role" => "maintainer"},
+  %{"name" => "Grace", "role" => "contributor"}
+]}
+
+# Explicit tags
+iex> Zaml.load("ratio: !!float 3\n")
+%{"ratio" => 3.0}
+iex> Zaml.load("code: !!int \"42\"\n")
+%{"code" => 42}
+
+# Empty and malformed input
+iex> Zaml.load("")
+nil
+iex> Zaml.load("a: [1, 2")
+:parse_error
+iex> Zaml.load(123)
+:error
+```
+
 ### Anchor / alias example
 
 ```elixir
@@ -342,6 +385,42 @@ PyYAML SafeLoader  33.85 s   65.9×
 ruamel.yaml        48.40 s   94.2×
 ```
 
+### Python examples
+
+```python
+import zamlpy
+
+# Scalars / nesting / coercions
+zamlpy.load("a: 1\nb: 2.5\nc: true\nd: null\ne: hello\n")
+# {'a': 1, 'b': 2.5, 'c': True, 'd': None, 'e': 'hello'}
+
+zamlpy.load("foo: 1\nbar: [a, b, 3.14]\n")
+# {'foo': 1, 'bar': ['a', 'b', 3.14]}
+
+zamlpy.load("a:\n  b: [1, 2, 3]\n  c: {d: e}\n")
+# {'a': {'b': [1, 2, 3], 'c': {'d': 'e'}}}
+
+# Explicit tags keep strings as strings
+zamlpy.load("x: !!str 123")
+# {'x': '123'}
+
+# Anchors and aliases
+zamlpy.load("a: &x 1\nb: *x\n")
+# {'a': 1, 'b': 1}
+
+# Empty document -> None
+zamlpy.load("") is None  # True
+
+# Malformed input raises ValueError
+zamlpy.load("[unclosed")  # raises ValueError
+```
+
+`zamlpy.load` accepts a `str` or `bytes` and returns native Python
+objects. Integers that do not fit a `number` come back as arbitrary
+precision `int` (Python's `int` is unbounded), so a YAML document with a
+200-digit integer parses correctly, where PyYAML's `SafeLoader` would
+raise.
+
 ### Cross-platform notes (Python extension)
 
 - **macOS:** `brew install zig libyaml`.
@@ -385,6 +464,56 @@ line and column of the problem.
 
 `parseCbor` and `parseJson` return the raw encoded document instead of a
 value, which is what the command below writes.
+
+### JavaScript examples
+
+```javascript
+import { parse, parseCbor, parseJson, ZamlError } from 'zamljs';
+
+// Scalars / nesting / coercions
+parse('a: 1\nb: 2.5\nc: true\nd: null\ne: hello\n');
+// { a: 1, b: 2.5, c: true, d: null, e: 'hello' }
+
+parse('foo: 1\nbar: [a, b, 3.14]\n');
+// { foo: 1, bar: [ 'a', 'b', 3.14 ] }
+
+parse('a:\n  b: [1, 2, 3]\n  c: {d: e}\n');
+// { a: { b: [ 1, 2, 3 ], c: { d: 'e' } } }
+
+// Explicit tags keep strings as strings
+parse('x: !!str 123');
+// { x: '123' }
+
+// Anchors and aliases
+parse('a: &x 1\nb: *x\n');
+// { a: 1n, b: 1n }
+
+// Empty document -> null
+parse('') === null; // true
+
+// Malformed input throws a ZamlError with the position
+try {
+  parse('a: [1, 2');
+} catch (error) {
+  if (error instanceof ZamlError) {
+    console.log(error.line, error.column, error.message);
+  }
+}
+
+// Integers that do not fit a number come back as bigint
+parse('big: 123456789012345678901234567890');
+// { big: 123456789012345678901234567890n }
+
+// !!binary stays a Uint8Array
+parse('img: !!binary |\n  RkxPUA==');
+// { img: Uint8Array(4) [ 70, 76, 79, 80 ] }
+
+// Raw encodings, the same bytes the command writes
+parseCbor('big: 123456789012345678901234567890');
+// Uint8Array [ ... ]
+parseJson('foo: 1\nbar: [a, b, 3.14]\n');
+// Uint8Array [ 123, 34, 102, 111, ... ] == '{"foo":1,"bar":["a","b",3.14]}'
+```
 
 Building the package from a checkout:
 
