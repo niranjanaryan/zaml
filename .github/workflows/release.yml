@@ -86,6 +86,15 @@ jobs:
     name: Publish to Hex
     needs: [version, wasm]
     runs-on: ubuntu-latest
+    # The package already exists, so the publish uses Workload Identity
+    # (OIDC trusted publishing) instead of a long-lived API key. The
+    # package owner adds a workload identity on hex.pm for this workflow
+    # and environment; the exchange below turns the GitHub token into a
+    # short-lived Hex token that can only publish the `zaml` package.
+    environment: release
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: Install Elixir
@@ -118,17 +127,38 @@ jobs:
           else
             echo "published=false" >> "$GITHUB_OUTPUT"
           fi
-      - name: Publish
+      - name: Exchange the OIDC token and publish
         if: steps.hex.outputs.published != 'true'
-        run: mix hex.publish --yes
+        run: |
+          set -euo pipefail
+          AUDIENCE=$(curl -fsS "$HEX_API_URL/oidc/audience" | jq -r .audience)
+          OIDC_TOKEN=$(curl -fsS \
+            -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${AUDIENCE}" \
+            | jq -r .value)
+          RESPONSE=$(curl -fsS -X POST "$HEX_API_URL/oauth/token" \
+            -H 'content-type: application/x-www-form-urlencoded' \
+            --data-urlencode "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer" \
+            --data-urlencode "assertion=$OIDC_TOKEN" \
+            --data-urlencode "scope=package:hexpm/zaml")
+          ACCESS_TOKEN=$(printf '%s' "$RESPONSE" | jq -r .access_token)
+          HEX_API_KEY="Bearer $ACCESS_TOKEN" mix hex.publish --yes
         env:
+          HEX_API_URL: https://hex.pm/api
           MIX_ENV: prod
-          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
 
   npm:
     name: Publish to npm
     needs: [version, wasm]
     runs-on: ubuntu-latest
+    # The npm package is published with trusted publishing (OIDC), which
+    # needs no long-lived token. The package owner enables trusted
+    # publishing on the npmjs.com package page for this repository and
+    # workflow; npm reads the OIDC token itself.
+    environment: release
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -138,7 +168,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          registry-url: "https://registry.npmjs.org"
       - name: Install the build tools
         working-directory: packages/zamljs
         run: npm ci
@@ -162,8 +191,6 @@ jobs:
         if: steps.npm.outputs.published != 'true'
         working-directory: packages/zamljs
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   wasmer:
     name: Publish to Wasmer

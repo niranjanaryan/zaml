@@ -30,7 +30,10 @@ endif
 
 ERTS_INCLUDE_DIR ?= $(shell erl -noshell -eval 'io:format("~s", [code:lib_dir(erts, include)]), halt().')
 
-PRIV_DIR := $(MIX_APP_PATH)/priv
+# The Makefile is run by `elixir_make` with MIX_APP_PATH set to the project
+# root. When it is run directly (for example by `make` from a checkout), the
+# priv directory is built in the current directory.
+PRIV_DIR := $(if $(MIX_APP_PATH),$(MIX_APP_PATH)/priv,priv)
 PRIV_SO  := $(PRIV_DIR)/zaml.so
 
 ZIG_BUILD_ARGS := \
@@ -42,6 +45,7 @@ ZIG_BUILD_ARGS := \
 	-I $(ERTS_INCLUDE_DIR) \
 	$(YAML_CFLAGS) \
 	$(YAML_LIBS) \
+	-lc \
 	--dep core \
 	-Mroot=native/zaml_nif.zig \
 	-O ReleaseFast \
