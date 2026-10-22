@@ -18,7 +18,6 @@ const alloc = @import("alloc.zig");
 
 const event = core.event;
 const parse = core.parse_c;
-const value = core.value;
 const cbor = core.cbor;
 const json = core.json;
 
@@ -67,28 +66,32 @@ pub fn main(init: std.process.Init.Minimal) !void {
     };
     defer heap.free(input);
 
-    var builder = value.Builder.init(heap);
-    defer builder.deinit();
-
     var problem: event.Problem = .{};
-    parse.parse(value.Builder, input, &builder, &problem) catch {
-        return fail(describe(&problem));
-    };
-
-    // An empty document has no value; it reads as null.
-    const root = builder.result() orelse value.Value{ .kind = .null };
-
     var out: std.ArrayList(u8) = .empty;
     defer out.deinit(heap);
 
     switch (format) {
         .json => {
-            try json.encode(heap, root, &out);
+            var encoder = json.Encoder.init(heap);
+            defer encoder.deinit();
+            parse.parse(json.Encoder, input, &encoder, &problem) catch {
+                return fail(describe(&problem));
+            };
+            encoder.finish() catch return fail("out of memory");
+            try out.appendSlice(heap, encoder.bytes());
             // A line of JSON ends with a newline; CBOR is binary and does
             // not.
             try out.append(heap, '\n');
         },
-        .cbor => try cbor.encode(heap, root, &out),
+        .cbor => {
+            var encoder = cbor.Encoder.init(heap);
+            defer encoder.deinit();
+            parse.parse(cbor.Encoder, input, &encoder, &problem) catch {
+                return fail(describe(&problem));
+            };
+            encoder.finish() catch return fail("out of memory");
+            try out.appendSlice(heap, encoder.bytes());
+        },
     }
 
     writeAll(1, out.items) catch return fail("cannot write stdout");

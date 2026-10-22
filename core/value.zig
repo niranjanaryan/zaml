@@ -1,9 +1,14 @@
-//! The host-agnostic value tree and the builder that fills it from a libyaml
-//! event stream.
+//! The value tree, kept as the reference of the streaming encoders.
 //!
-//! The tree is what the WASM core encodes into CBOR or JSON. The native hosts
-//! (Erlang, Python) build their own values directly from the event stream and
-//! do not use the tree; only the classification rules are shared with them.
+//! The encoders in `cbor.zig` and `json.zig` write a document while the
+//! events of the parse arrive, so a document never becomes a tree of
+//! values. This file holds the tree the encoders replaced, together
+//! with the encoders that walk it (`legacy_cbor.zig` and
+//! `legacy_json.zig`), so the tests can check that both ways write the
+//! same bytes.
+//!
+//! Nothing outside the tests uses the tree: the WebAssembly builds and
+//! the native hosts all go through the streaming encoders.
 
 const std = @import("std");
 const scalars = @import("scalar.zig");

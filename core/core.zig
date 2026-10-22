@@ -11,4 +11,4 @@ pub const event = @import("event.zig");
 pub const json = @import("json.zig");
 pub const parse_c = @import("parse_c.zig");
 pub const scalars = @import("scalar.zig");
-pub const value = @import("value.zig");
+pub const stream = @import("stream.zig");

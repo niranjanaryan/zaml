@@ -12,4 +12,20 @@ pub const event = @import("event.zig");
 pub const json = @import("json.zig");
 pub const parse = @import("parse.zig");
 pub const scalars = @import("scalar.zig");
+pub const stream = @import("stream.zig");
 pub const value = @import("value.zig");
+
+// The tests of a file are only run when the file is imported from a test
+// block, so every file with tests is pulled in here.
+test {
+    _ = @import("base64.zig");
+    _ = @import("cbor.zig");
+    _ = @import("diff_test.zig");
+    _ = @import("emit.zig");
+    _ = @import("event.zig");
+    _ = @import("json.zig");
+    _ = @import("parse.zig");
+    _ = @import("scalar.zig");
+    _ = @import("stream.zig");
+    _ = @import("value.zig");
+}

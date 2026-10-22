@@ -23,7 +23,6 @@ const alloc = @import("alloc.zig");
 
 const event = core.event;
 const parse = core.parse_c;
-const value = core.value;
 const cbor = core.cbor;
 const json = core.json;
 
@@ -118,41 +117,42 @@ export fn zaml_parse(ptr: u32, len: u32, format: u32) i32 {
         input = bytes[0..len];
     }
 
-    var builder = value.Builder.init(heap);
-    defer builder.deinit();
-
     var problem: event.Problem = .{};
-    parse.parse(value.Builder, input, &builder, &problem) catch |err| {
-        setError(describe(&problem));
-        return switch (err) {
-            error.OutOfMemory => @intFromEnum(ErrorCode.out_of_memory),
-            else => @intFromEnum(ErrorCode.parse_error),
-        };
+    const encoded = switch (fmt) {
+        .cbor => encode(cbor.Encoder, input, &problem) catch |err| {
+            setError(describe(&problem));
+            return switch (err) {
+                error.OutOfMemory => @intFromEnum(ErrorCode.out_of_memory),
+                else => @intFromEnum(ErrorCode.parse_error),
+            };
+        },
+        .json => encode(json.Encoder, input, &problem) catch |err| {
+            setError(describe(&problem));
+            return switch (err) {
+                error.OutOfMemory => @intFromEnum(ErrorCode.out_of_memory),
+                else => @intFromEnum(ErrorCode.parse_error),
+            };
+        },
     };
 
-    // An empty document has no value; it reads as null.
-    const root = builder.result() orelse value.Value{ .kind = .null };
-
-    var out: std.ArrayList(u8) = .empty;
-    defer out.deinit(heap);
-
-    switch (fmt) {
-        .cbor => cbor.encode(heap, root, &out) catch {
-            setError("out of memory");
-            return @intFromEnum(ErrorCode.out_of_memory);
-        },
-        .json => json.encode(heap, root, &out) catch {
-            setError("out of memory");
-            return @intFromEnum(ErrorCode.out_of_memory);
-        },
-    }
-
-    result_buf = store(out.items) catch {
-        setError("out of memory");
-        return @intFromEnum(ErrorCode.out_of_memory);
-    };
+    result_buf = encoded;
 
     return @intFromEnum(ErrorCode.ok);
+}
+
+/// Parse `input` and write it with the encoder.
+///
+/// The encoder writes the document while the events of the parse arrive,
+/// so the document is never held as a tree of values. The bytes are
+/// copied out of the encoder into a buffer the module owns.
+fn encode(comptime Encoder: type, input: []const u8, problem: *event.Problem) ![]u8 {
+    var encoder = Encoder.init(heap);
+    defer encoder.deinit();
+
+    try parse.parse(Encoder, input, &encoder, problem);
+    try encoder.finish();
+
+    return try heap.dupe(u8, encoder.bytes());
 }
 
 /// The address of the encoded result of the last parse.
