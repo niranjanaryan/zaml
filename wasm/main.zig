@@ -177,11 +177,6 @@ export fn zaml_error_len() u32 {
     return @intCast(error_buf.len);
 }
 
-/// The version of the module, as a NUL terminated string.
-export fn zaml_version() u32 {
-    return 0;
-}
-
 fn setError(message: []const u8) void {
     error_buf = store(message) catch &.{};
 }
