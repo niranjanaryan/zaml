@@ -1,0 +1,13 @@
+{
+  "name": "zaml-js-benchmark",
+  "private": true,
+  "type": "module",
+  "description": "Compares zamljs with the parsers of the JavaScript ecosystem",
+  "scripts": {
+    "bench": "node bench.mjs"
+  },
+  "devDependencies": {
+    "js-yaml": "^5.5.0",
+    "yaml": "^2.8.1"
+  }
+}
