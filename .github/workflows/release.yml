@@ -104,7 +104,7 @@ jobs:
       - name: Set the version
         run: |
           version="${{ needs.version.outputs.version }}"
-          sed -i "s|^      version: \".*\"|version = \"$version\"|" mix.exs
+          sed -i "s|^      version: \".*\"|      version: \"$version\"|" mix.exs
           grep -n 'version:' mix.exs
       - name: Build the package
         run: mix hex.build
