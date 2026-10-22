@@ -101,6 +101,11 @@ the native builds use. The module is instantiated when the package is
 imported; in the browser it is fetched from next to the JavaScript, in Node
 it is read from the disk.
 
+The module writes the document while libyaml parses it: the events of the
+parse go straight into the encoder, so the document is never held as a tree
+of values. A 14 MB document needs about 80 MB of WebAssembly memory that
+way, instead of the 550 MB a tree of values costs.
+
 The `browser` and `node` export conditions pick the right loader, so a
 bundler picks the browser build and Node picks the file system one.
 

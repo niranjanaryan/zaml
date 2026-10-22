@@ -78,8 +78,8 @@ jobs:
         run: zig build test
       - name: Build the WebAssembly modules
         run: |
-          zig build wasm
-          zig build wasm-wasi
+          zig build wasm -Doptimize=ReleaseSmall
+          zig build wasm-wasi -Doptimize=ReleaseSmall
       - name: Test the JavaScript package
         working-directory: packages/zamljs
         run: |

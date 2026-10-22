@@ -28,6 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   releases, the JavaScript package to npm and the command to the Wasmer
   registry.
 
+### Changed
+
+- The WebAssembly core no longer builds a tree of values before it
+  encodes a document: the CBOR and the JSON encoders write the
+  document while the events of the parse arrive. The bytes do not
+  change, but a 14 MB document needs 70 MB of memory instead of 500 MB,
+  and the parse is 27% faster as JSON and 18% faster as CBOR.
+
 ### Fixed
 
 - The `strcmp` and `strncmp` of the freestanding WebAssembly build no
@@ -37,6 +45,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The CPython extension no longer leaves a pending exception behind
   when an explicitly tagged integer cannot be converted, which turned
   `!!int abc` into a `SystemError` instead of the string `abc`.
+- The unit tests of the shared core run again. They were imported but
+  never pulled into a test block, so the test binary had no tests in
+  it at all.
 
 ## [0.2.0] - 2026-10-09
 

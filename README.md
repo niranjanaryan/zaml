@@ -236,10 +236,11 @@ numbers.
 │   └── zaml_nif.zig                 # the NIF (uses libyaml via @cImport)
 ├── core/                            # the host independent core
 │   ├── scalar.zig                   # how a scalar and a tag resolve
-│   ├── value.zig                    # the value tree
+│   ├── stream.zig                   # what the streaming encoders share
 │   ├── parse.zig, parse_c.zig       # the event stream, native and WASM
 │   ├── cbor.zig, json.zig           # the output formats
 │   ├── base64.zig, emit.zig, event.zig
+│   ├── value.zig                    # the value tree, the reference of the tests
 │   └── native.zig                   # what the native hosts share
 ├── wasm/
 │   ├── main.zig                     # the WebAssembly module (browser)
