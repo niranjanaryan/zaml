@@ -1,5 +1,6 @@
 include builder.py
 include zamlmodule.zig
+recursive-include core *.zig
 include README.md
 include LICENSE
 include CHANGELOG.md

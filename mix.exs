@@ -75,6 +75,8 @@ defmodule Zaml.MixProject do
       files: [
         "lib",
         "native",
+        "core/native.zig",
+        "core/scalar.zig",
         "Makefile",
         "mix.exs",
         "README.md",

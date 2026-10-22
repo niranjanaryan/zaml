@@ -13,6 +13,10 @@ const yaml = @cImport({
     @cInclude("yaml.h");
 });
 
+// The rules that decide what a scalar is. They live in the core so that
+// every host of zaml agrees on them.
+const scalars = @import("core/native.zig").scalars;
+
 const alloc = std.heap.c_allocator;
 
 const FrameKind = enum { map, list };
@@ -28,19 +32,13 @@ fn new_none() *py.PyObject {
 }
 
 fn scalar_obj(value: []const u8, tag: []const u8) !*py.PyObject {
-    if (tag.len > 0) {
-        if (std.mem.endsWith(u8, tag, ":str")) return new_str(value);
-        if (std.mem.endsWith(u8, tag, ":int")) return make_int(value) orelse new_str(value);
-        if (std.mem.endsWith(u8, tag, ":float")) return make_float(value) orelse new_str(value);
-        if (std.mem.endsWith(u8, tag, ":bool")) return make_bool(value);
-        if (std.mem.endsWith(u8, tag, ":null")) return new_none();
+    switch (scalars.classify(value, tag)) {
+        .str => return new_str(value),
+        .int => return make_int(value) orelse new_str(value),
+        .float => return make_float(value) orelse new_str(value),
+        .bool => return make_bool(value),
+        .null => return new_none(),
     }
-    if (is_bool_true(value)) return py.PyBool_FromLong(1);
-    if (is_bool_false(value)) return py.PyBool_FromLong(0);
-    if (is_null(value)) return new_none();
-    if (is_int_str(value)) return make_int(value) orelse new_str(value);
-    if (is_float_str(value)) return make_float(value) orelse new_str(value);
-    return new_str(value);
 }
 
 fn new_str(value: []const u8) *py.PyObject {
@@ -48,98 +46,28 @@ fn new_str(value: []const u8) *py.PyObject {
 }
 
 fn make_int(s: []const u8) ?*py.PyObject {
-    var buf: [256]u8 = undefined;
-    var n: usize = 0;
-    for (s) |c| {
-        if (c == '_') continue;
-        if (n + 1 >= buf.len) return null;
-        buf[n] = c;
-        n += 1;
-    }
-    buf[n] = 0;
+    // The buffer holds the digits without the `_` separators and the
+    // terminating NUL that PyLong_FromString needs.
+    var buf: [257]u8 = undefined;
+    const text = scalars.stripUnderscores(s, &buf) orelse return null;
+    buf[text.len] = 0;
     // PyLong_FromString handles arbitrary precision (and the sign).
-    return py.PyLong_FromString(@ptrCast(&buf[0]), null, 10);
+    const obj = py.PyLong_FromString(@ptrCast(buf[0..].ptr), null, 10);
+    if (obj == null) {
+        // The value is not an integer after all: the caller keeps it as a
+        // string, so the error of the failed conversion is dropped.
+        py.PyErr_Clear();
+    }
+    return obj;
 }
 
 fn make_float(s: []const u8) ?*py.PyObject {
-    var buf: [128]u8 = undefined;
-    var n: usize = 0;
-    for (s) |c| {
-        if (c == '_') continue;
-        if (n >= buf.len) return null;
-        buf[n] = c;
-        n += 1;
-    }
-    const f = std.fmt.parseFloat(f64, buf[0..n]) catch return null;
+    const f = scalars.parseF64(s) orelse return null;
     return py.PyFloat_FromDouble(f);
 }
 
 fn make_bool(s: []const u8) *py.PyObject {
-    if (is_bool_false(s)) return py.PyBool_FromLong(0);
-    return py.PyBool_FromLong(1);
-}
-
-fn is_bool_true(s: []const u8) bool {
-    return std.mem.eql(u8, s, "true") or std.mem.eql(u8, s, "True") or std.mem.eql(u8, s, "TRUE") or
-        std.mem.eql(u8, s, "yes") or std.mem.eql(u8, s, "Yes") or std.mem.eql(u8, s, "YES") or
-        std.mem.eql(u8, s, "on") or std.mem.eql(u8, s, "On") or std.mem.eql(u8, s, "ON");
-}
-
-fn is_bool_false(s: []const u8) bool {
-    return std.mem.eql(u8, s, "false") or std.mem.eql(u8, s, "False") or std.mem.eql(u8, s, "FALSE") or
-        std.mem.eql(u8, s, "no") or std.mem.eql(u8, s, "No") or std.mem.eql(u8, s, "NO") or
-        std.mem.eql(u8, s, "off") or std.mem.eql(u8, s, "Off") or std.mem.eql(u8, s, "OFF");
-}
-
-fn is_null(s: []const u8) bool {
-    return std.mem.eql(u8, s, "null") or std.mem.eql(u8, s, "Null") or std.mem.eql(u8, s, "NULL") or
-        std.mem.eql(u8, s, "~") or s.len == 0;
-}
-
-fn is_int_str(s: []const u8) bool {
-    if (s.len == 0) return false;
-    var i: usize = 0;
-    if (s[0] == '+' or s[0] == '-') {
-        if (s.len == 1) return false;
-        i = 1;
-    }
-    var has_digit = false;
-    while (i < s.len) : (i += 1) {
-        const c = s[i];
-        if (c == '_') continue;
-        if (c < '0' or c > '9') return false;
-        has_digit = true;
-    }
-    return has_digit;
-}
-
-fn is_float_str(s: []const u8) bool {
-    if (s.len == 0) return false;
-    var i: usize = 0;
-    if (s[0] == '+' or s[0] == '-') {
-        if (s.len == 1) return false;
-        i = 1;
-    }
-    var has_digit = false;
-    var has_dot = false;
-    var has_e = false;
-    while (i < s.len) : (i += 1) {
-        const c = s[i];
-        if (c == '_') continue;
-        if (c == '.') {
-            if (has_dot or has_e) return false;
-            has_dot = true;
-        } else if (c == 'e' or c == 'E') {
-            if (has_e or !has_digit) return false;
-            has_e = true;
-            if (i + 1 < s.len and (s[i + 1] == '+' or s[i + 1] == '-')) i += 1;
-        } else if (c < '0' or c > '9') {
-            return false;
-        } else {
-            has_digit = true;
-        }
-    }
-    return (has_dot or has_e) and has_digit;
+    return py.PyBool_FromLong(if (scalars.boolValue(s)) 1 else 0);
 }
 
 fn deliver(stack: *std.ArrayList(Frame), root: *?*py.PyObject, value: *py.PyObject) !void {

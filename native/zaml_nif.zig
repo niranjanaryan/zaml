@@ -6,6 +6,12 @@ const erl_nif = @cImport({
     @cInclude("erl_nif.h");
 });
 
+// The rules that decide what a scalar is. They live in the core so that
+// every host of zaml agrees on them; the module is passed in by the
+// build, because the NIF is built from the `native/` directory and cannot
+// reach `core/` on its own.
+const scalars = @import("core").scalars;
+
 const yaml_alloc = std.heap.c_allocator;
 
 const FrameKind = enum { map, list };
@@ -185,112 +191,27 @@ fn deliver_value(stack: *std.ArrayList(Frame), first_doc: *?erl_nif.ERL_NIF_TERM
 }
 
 fn scalar_term(env: *erl_nif.ErlNifEnv, input_term: erl_nif.ERL_NIF_TERM, input: []const u8, value: []const u8, tag: []const u8) !erl_nif.ERL_NIF_TERM {
-    if (tag.len > 0) {
-        if (std.mem.endsWith(u8, tag, ":str")) return make_string_sub(env, input_term, input, value);
-        if (std.mem.endsWith(u8, tag, ":int")) return make_int_term(env, value) catch return make_string_sub(env, input_term, input, value);
-        if (std.mem.endsWith(u8, tag, ":float")) return make_float_term(env, value) catch return make_string_sub(env, input_term, input, value);
-        if (std.mem.endsWith(u8, tag, ":bool")) return make_bool_term(env, value);
-        if (std.mem.endsWith(u8, tag, ":null")) return erl_nif.enif_make_atom(env, "nil");
+    switch (scalars.classify(value, tag)) {
+        .str => return make_string_sub(env, input_term, input, value),
+        .int => return make_int_term(env, value) catch return make_string_sub(env, input_term, input, value),
+        .float => return make_float_term(env, value) catch return make_string_sub(env, input_term, input, value),
+        .bool => return make_bool_term(env, value),
+        .null => return erl_nif.enif_make_atom(env, "nil"),
     }
-    if (is_bool_true(value)) return erl_nif.enif_make_atom(env, "true");
-    if (is_bool_false(value)) return erl_nif.enif_make_atom(env, "false");
-    if (is_null(value)) return erl_nif.enif_make_atom(env, "nil");
-    if (is_int_str(value)) return make_int_term(env, value) catch return make_string_sub(env, input_term, input, value);
-    if (is_float_str(value)) return make_float_term(env, value) catch return make_string_sub(env, input_term, input, value);
-    return make_string_sub(env, input_term, input, value);
-}
-
-fn is_bool_true(s: []const u8) bool {
-    return std.mem.eql(u8, s, "true") or std.mem.eql(u8, s, "True") or std.mem.eql(u8, s, "TRUE") or
-        std.mem.eql(u8, s, "yes") or std.mem.eql(u8, s, "Yes") or std.mem.eql(u8, s, "YES") or
-        std.mem.eql(u8, s, "on") or std.mem.eql(u8, s, "On") or std.mem.eql(u8, s, "ON");
-}
-
-fn is_bool_false(s: []const u8) bool {
-    return std.mem.eql(u8, s, "false") or std.mem.eql(u8, s, "False") or std.mem.eql(u8, s, "FALSE") or
-        std.mem.eql(u8, s, "no") or std.mem.eql(u8, s, "No") or std.mem.eql(u8, s, "NO") or
-        std.mem.eql(u8, s, "off") or std.mem.eql(u8, s, "Off") or std.mem.eql(u8, s, "OFF");
-}
-
-fn is_null(s: []const u8) bool {
-    return std.mem.eql(u8, s, "null") or std.mem.eql(u8, s, "Null") or std.mem.eql(u8, s, "NULL") or
-        std.mem.eql(u8, s, "~") or s.len == 0;
-}
-
-fn is_int_str(s: []const u8) bool {
-    if (s.len == 0) return false;
-    var i: usize = 0;
-    if (s[0] == '+' or s[0] == '-') {
-        if (s.len == 1) return false;
-        i = 1;
-    }
-    var has_digit = false;
-    while (i < s.len) : (i += 1) {
-        const c = s[i];
-        if (c == '_') continue;
-        if (c < '0' or c > '9') return false;
-        has_digit = true;
-    }
-    return has_digit;
-}
-
-fn is_float_str(s: []const u8) bool {
-    if (s.len == 0) return false;
-    var i: usize = 0;
-    if (s[0] == '+' or s[0] == '-') {
-        if (s.len == 1) return false;
-        i = 1;
-    }
-    var has_digit = false;
-    var has_dot = false;
-    var has_e = false;
-    while (i < s.len) : (i += 1) {
-        const c = s[i];
-        if (c == '_') continue;
-        if (c == '.') {
-            if (has_dot or has_e) return false;
-            has_dot = true;
-        } else if (c == 'e' or c == 'E') {
-            if (has_e or !has_digit) return false;
-            has_e = true;
-            if (i + 1 < s.len and (s[i + 1] == '+' or s[i + 1] == '-')) i += 1;
-        } else if (c < '0' or c > '9') {
-            return false;
-        } else {
-            has_digit = true;
-        }
-    }
-    return (has_dot or has_e) and has_digit;
 }
 
 fn make_int_term(env: *erl_nif.ErlNifEnv, s: []const u8) !erl_nif.ERL_NIF_TERM {
-    var buf: [128]u8 = undefined;
-    if (s.len > buf.len) return error.IntTooLong;
-    var n: usize = 0;
-    for (s) |c| if (c != '_') {
-        buf[n] = c;
-        n += 1;
-    };
-    const v = std.fmt.parseInt(i64, buf[0..n], 10) catch return error.IntParseFailed;
+    const v = scalars.parseI64(s) orelse return error.IntParseFailed;
     return erl_nif.enif_make_int64(env, v);
 }
 
 fn make_float_term(env: *erl_nif.ErlNifEnv, s: []const u8) !erl_nif.ERL_NIF_TERM {
-    var buf: [128]u8 = undefined;
-    if (s.len > buf.len) return error.FloatTooLong;
-    var n: usize = 0;
-    for (s) |c| if (c != '_') {
-        buf[n] = c;
-        n += 1;
-    };
-    const f = std.fmt.parseFloat(f64, buf[0..n]) catch return error.FloatParseFailed;
+    const f = scalars.parseF64(s) orelse return error.FloatParseFailed;
     return erl_nif.enif_make_double(env, f);
 }
 
 fn make_bool_term(env: *erl_nif.ErlNifEnv, s: []const u8) erl_nif.ERL_NIF_TERM {
-    if (is_bool_true(s)) return erl_nif.enif_make_atom(env, "true");
-    if (is_bool_false(s)) return erl_nif.enif_make_atom(env, "false");
-    return erl_nif.enif_make_atom(env, "true");
+    return erl_nif.enif_make_atom(env, if (scalars.boolValue(s)) "true" else "false");
 }
 
 var nif_funcs = [_]erl_nif.ErlNifFunc{

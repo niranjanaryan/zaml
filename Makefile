@@ -42,11 +42,14 @@ ZIG_BUILD_ARGS := \
 	-I $(ERTS_INCLUDE_DIR) \
 	$(YAML_CFLAGS) \
 	$(YAML_LIBS) \
-	-Mroot=native/zaml_nif.zig
+	--dep core \
+	-Mroot=native/zaml_nif.zig \
+	-O ReleaseFast \
+	-Mcore=core/native.zig
 
 all: $(PRIV_SO)
 
-$(PRIV_SO): native/zaml_nif.zig
+$(PRIV_SO): native/zaml_nif.zig core/native.zig core/scalar.zig
 	@mkdir -p $(PRIV_DIR)
 	zig $(ZIG_BUILD_ARGS)
 
